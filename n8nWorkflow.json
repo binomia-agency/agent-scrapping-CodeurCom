@@ -1,0 +1,501 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        176
+      ],
+      "id": "b0f15a2c-7141-406a-af38-00059263513b",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "content": "## Trigger\nSe déclenche toute les heures",
+        "height": 112,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        -144
+      ],
+      "id": "7f8af268-3527-4189-8df5-f36d4c9a4211",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\n\nfor (const item of $input.all()) {\n  const j = item.json;\n\n  const lignes = (j.contentSnippet || '')\n    .split('\\n')\n    .map(l => l.trim())\n    .filter(l => l.length > 0);\n\n  // Ligne 0 : \"Budget : 500 € à 1 000 € - Catégories : Python, ChatGPT\"\n  const morceaux = (lignes[0] || '').split(' - Catégories : ');\n\n  const budget = (morceaux[0] || '').replace('Budget : ', '').trim();\n  const mots_cles = (morceaux[1] || '').trim();\n\n  // Les lignes du milieu = la description\n  const description = lignes.slice(1, -1).join(' ');\n\n  const publieLeFr = new Date(j.isoDate).toLocaleString('fr-FR', {\n    timeZone: 'Europe/Paris',\n    dateStyle: 'short',\n    timeStyle: 'short',\n  });\n\n  out.push({\n    json: {\n      id: j.guid,\n      type: j.categorie_mission,\n      titre: j.title,\n      url: j.link,\n      budget,\n      mots_cles,\n      description,\n      publie_le: j.isoDate,\n      publie_le_fr: publieLeFr,\n      \n    }\n  });\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        176
+      ],
+      "id": "479ca7db-1292-4cd6-a14b-8f63f756214b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "content": "## Lecture du flux RSS",
+        "height": 80,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -112
+      ],
+      "id": "e9fe227c-96f4-4602-af56-772a1536c0de",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Normalisation\n\nReformatage des données ouput",
+        "height": 112,
+        "width": 166
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        624,
+        -144
+      ],
+      "id": "4d859eb6-0abc-4c24-adba-167736151dd4",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "operation": "removeItemsSeenInPreviousExecutions",
+        "dedupeValue": "={{ $json.id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        880,
+        176
+      ],
+      "id": "24352831-daa5-4a2a-bb67-bd3d1bc61cab",
+      "name": "Remove Duplicates"
+    },
+    {
+      "parameters": {
+        "content": "## Tri des doublons\n\nCompare les nouveaux aux anciens",
+        "height": 144,
+        "width": 166
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        848,
+        -176
+      ],
+      "id": "7e1535ae-3940-4ce1-be9f-40ed59e4c4ea",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BN49F20LQ",
+          "mode": "list",
+          "cachedResultName": "missions-codeur-com"
+        },
+        "text": "=*{{ $json.type }} - *\n*{{ $json.titre }}*\n💰 {{ $json.budget }} \nℹ️ {{ $json.mots_cles }}\n📜 {{ $json.description }}\n\n<{{ $json.url }}|👉 Voir la mission>",
+        "otherOptions": {
+          "includeLinkToWorkflow": false,
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        1088,
+        176
+      ],
+      "id": "d0153851-150e-4fde-a4b4-093575db564f",
+      "name": "Send a message",
+      "webhookId": "c02db811-a9af-42b5-b9a8-13c7632f627f",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "aJNTnMs4lJ9wwDuF",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Notif Slack\n\nEnvoi les annonces sur slack",
+        "height": 112,
+        "width": 182
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        -144
+      ],
+      "id": "38d65aa3-ce08-41cd-97fa-6f2986c4e4f3",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c3050601-bff2-4dd3-a068-d21a0a09840f",
+              "name": "categorie_mission",
+              "value": "Dev",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        240,
+        0
+      ],
+      "id": "13d4def5-7ef7-46ab-8a74-c12939abc927",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "content": "## Ajout d'une donnée\n\nAjout du type de mission (Dev,IA ou Web)",
+        "height": 112,
+        "width": 214
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        176,
+        -144
+      ],
+      "id": "c55d200b-7c8e-44ea-a440-1e093f2e26ff",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c3050601-bff2-4dd3-a068-d21a0a09840f",
+              "name": "categorie_mission",
+              "value": "IA",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        240,
+        176
+      ],
+      "id": "97d03632-4864-491c-8cd3-6d4318a549b9",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c3050601-bff2-4dd3-a068-d21a0a09840f",
+              "name": "categorie_mission",
+              "value": "Web",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        240,
+        352
+      ],
+      "id": "7ebe50bb-d03f-4c64-b19d-a329715d7f70",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "url": "   https://www.codeur.com/projects?c=developpement&format=rss&states%5B%5D=published",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        0
+      ],
+      "id": "a2bd98fa-f36a-4989-af18-32c9684eb55a",
+      "name": "RSS Dev"
+    },
+    {
+      "parameters": {
+        "url": "https://www.codeur.com/projects?c=ia&format=rss&order=most_recent&states%5B%5D=published",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        176
+      ],
+      "id": "dcc6cbec-a94c-4ee3-b6f4-602547efaa59",
+      "name": "RSS IA"
+    },
+    {
+      "parameters": {
+        "url": "https://www.codeur.com/projects?c=web&format=rss&order=most_recent&states%5B%5D=published",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        352
+      ],
+      "id": "15ac3a9c-661b-470b-8168-16ca98d75489",
+      "name": "RSS Web"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        160
+      ],
+      "id": "10431b40-99a9-463c-8d6e-c0fda9a465c4",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "content": "## Fusion des 3 listes",
+        "height": 80,
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        416,
+        -112
+      ],
+      "id": "0c0702f8-f8dc-4d6c-aefe-24193551aa89",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "\n## Missions IA",
+        "height": 80,
+        "width": 150,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        176
+      ],
+      "id": "1d08f1d6-3018-46a8-b8ff-617ebda4ccef",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "\n## Missions Web",
+        "height": 80,
+        "width": 150,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        368
+      ],
+      "id": "9b6b8c0d-ff56-4187-af5f-6c0dc5790fc5",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "\n## Missions Dev",
+        "height": 80,
+        "width": 150,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        16
+      ],
+      "id": "464bafb6-d2f4-4044-b451-a510c121b44d",
+      "name": "Sticky Note10"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Dev",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS IA",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS Web",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Dev": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS IA": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Web": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "635c0474-e5c1-40a6-a794-db47cbc34843",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7b4105ff186d60f292d69b8de40973e7c5c42e4db03ee17a65359078d36d0678"
+  },
+  "nodeGroups": [],
+  "id": "cB609a0awapNZrI1",
+  "tags": []
+}
